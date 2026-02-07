@@ -67,6 +67,7 @@ jobs:
 
           echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
           echo "Chart version: $CHART_VERSION"
+          echo "Chart type: $CHART_TYPE"
 
       - name: Login to OCI registry
         run: |
