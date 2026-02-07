@@ -24,6 +24,8 @@ on:
         required: true
       REGISTRY_PASSWORD:
         required: true
+      GH_PAT:
+        required: true
 
 jobs:
   publish:
@@ -35,6 +37,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
 
       - name: Setup Helm
         uses: azure/setup-helm@v4
