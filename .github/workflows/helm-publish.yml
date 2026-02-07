@@ -1,0 +1,109 @@
+name: Helm Publish
+
+on:
+  workflow_call:
+    inputs:
+      registry:
+        description: 'OCI registry URL'
+        type: string
+        default: 'nix-docker.registry.twcstorage.ru'
+      chart_path:
+        description: 'Path to the chart directory'
+        type: string
+        default: '.'
+      registry_path:
+        description: 'Path in the registry (e.g. helm/charts, helm/libs)'
+        type: string
+        default: 'helm/charts'
+      helm_version:
+        description: 'Helm CLI version'
+        type: string
+        default: 'v4.1.0'
+    secrets:
+      REGISTRY_USERNAME:
+        required: true
+      REGISTRY_PASSWORD:
+        required: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: ${{ inputs.helm_version }}
+
+      - name: Setup yq
+        uses: mikefarah/yq@master
+
+      - name: Determine version
+        id: version
+        working-directory: ${{ inputs.chart_path }}
+        run: |
+          BASE_VERSION=$(yq '.version' Chart.yaml)
+          echo "base_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            CHART_VERSION="$BASE_VERSION"
+            echo "type=release" >> "$GITHUB_OUTPUT"
+          elif [[ "$GITHUB_REF" == refs/heads/main ]]; then
+            CHART_VERSION="${BASE_VERSION}-snapshot"
+            echo "type=snapshot" >> "$GITHUB_OUTPUT"
+          else
+            BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
+            CHART_VERSION="${BASE_VERSION}-dev.${BRANCH_NAME}"
+            echo "type=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Chart version: $CHART_VERSION"
+
+      - name: Login to OCI registry
+        run: |
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | \
+            helm registry login "${{ inputs.registry }}" \
+              --username "${{ secrets.REGISTRY_USERNAME }}" \
+              --password-stdin
+
+      - name: Update dependencies
+        working-directory: ${{ inputs.chart_path }}
+        run: helm dependency update
+
+      - name: Lint chart
+        working-directory: ${{ inputs.chart_path }}
+        run: helm lint .
+
+      - name: Template chart
+        working-directory: ${{ inputs.chart_path }}
+        run: helm template test-release .
+
+      - name: Package chart
+        working-directory: ${{ inputs.chart_path }}
+        run: |
+          helm package . --version "${{ steps.version.outputs.chart_version }}"
+
+      - name: Push chart
+        working-directory: ${{ inputs.chart_path }}
+        run: |
+          helm push ./*.tgz "oci://${{ inputs.registry }}/${{ inputs.registry_path }}"
+
+      - name: Create release tag
+        if: steps.version.outputs.type == 'snapshot'
+        env:
+          BASE_VERSION: ${{ steps.version.outputs.base_version }}
+        run: |
+          if git rev-parse "v${BASE_VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${BASE_VERSION} already exists, skipping"
+          else
+            git tag "v${BASE_VERSION}"
+            git push origin "v${BASE_VERSION}"
+            echo "Created and pushed tag v${BASE_VERSION}"
+          fi
