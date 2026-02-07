@@ -49,7 +49,9 @@ jobs:
         working-directory: ${{ inputs.chart_path }}
         run: |
           BASE_VERSION=$(yq '.version' Chart.yaml)
+          CHART_TYPE=$(yq '.type' Chart.yaml)
           echo "base_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "chart_type=$CHART_TYPE" >> "$GITHUB_OUTPUT"
 
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             CHART_VERSION="$BASE_VERSION"
@@ -82,6 +84,7 @@ jobs:
         run: helm lint .
 
       - name: Template chart
+        if: steps.version.outputs.chart_type != 'library'
         working-directory: ${{ inputs.chart_path }}
         run: helm template test-release .
 
