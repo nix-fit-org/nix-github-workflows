@@ -60,11 +60,10 @@ jobs:
             CHART_VERSION="$BASE_VERSION"
             echo "type=release" >> "$GITHUB_OUTPUT"
           elif [[ "$GITHUB_REF" == refs/heads/main ]]; then
-            CHART_VERSION="${BASE_VERSION}-snapshot"
-            echo "type=snapshot" >> "$GITHUB_OUTPUT"
+            CHART_VERSION="${BASE_VERSION}-rc"
+            echo "type=rc" >> "$GITHUB_OUTPUT"
           else
-            BRANCH_NAME=$(echo "${GITHUB_REF#refs/heads/}" | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
-            CHART_VERSION="${BASE_VERSION}-dev.${BRANCH_NAME}"
+            CHART_VERSION="${BASE_VERSION}-dev"
             echo "type=dev" >> "$GITHUB_OUTPUT"
           fi
 
@@ -103,7 +102,7 @@ jobs:
           helm push ./*.tgz "oci://${{ inputs.registry }}/${{ inputs.registry_path }}"
 
       - name: Create release tag
-        if: steps.version.outputs.type == 'snapshot'
+        if: steps.version.outputs.type == 'rc'
         env:
           BASE_VERSION: ${{ steps.version.outputs.base_version }}
         run: |
