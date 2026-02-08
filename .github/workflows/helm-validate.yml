@@ -25,23 +25,24 @@ jobs:
         uses: mikefarah/yq@master
 
       - name: Check version bump
+        if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/')
         working-directory: ${{ inputs.chart_path }}
         run: |
           git fetch origin main
 
-          PR_VERSION=$(yq '.version' Chart.yaml)
+          CURRENT_VERSION=$(yq '.version' Chart.yaml)
           MAIN_VERSION=$(git show origin/main:${{ inputs.chart_path }}/Chart.yaml 2>/dev/null | yq '.version' || echo "0.0.0")
 
-          echo "PR version:   $PR_VERSION"
-          echo "Main version: $MAIN_VERSION"
+          echo "Current version: $CURRENT_VERSION"
+          echo "Main version:    $MAIN_VERSION"
 
-          HIGHEST=$(printf '%s\n' "$PR_VERSION" "$MAIN_VERSION" | sort -V | tail -n 1)
+          HIGHEST=$(printf '%s\n' "$CURRENT_VERSION" "$MAIN_VERSION" | sort -V | tail -n 1)
           if [ "$HIGHEST" = "$MAIN_VERSION" ]; then
-            echo "::error::Chart version in PR ($PR_VERSION) must be greater than in main ($MAIN_VERSION). Please bump the version in Chart.yaml"
+            echo "::error::Chart version ($CURRENT_VERSION) must be greater than in main ($MAIN_VERSION). Please bump the version in Chart.yaml"
             exit 1
           fi
 
-          echo "Version check passed: $PR_VERSION > $MAIN_VERSION"
+          echo "Version check passed: $CURRENT_VERSION > $MAIN_VERSION"
 
       - name: Check docs
         working-directory: ${{ inputs.chart_path }}
