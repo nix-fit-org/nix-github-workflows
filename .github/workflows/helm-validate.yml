@@ -31,7 +31,8 @@ jobs:
           git fetch origin main
 
           CURRENT_VERSION=$(yq '.version' Chart.yaml)
-          MAIN_VERSION=$(git show origin/main:${{ inputs.chart_path }}/Chart.yaml 2>/dev/null | yq '.version' || echo "0.0.0")
+          MAIN_VERSION="0.0.0"
+          CHART_YAML=$(git show origin/main:${{ inputs.chart_path }}/Chart.yaml 2>/dev/null) && MAIN_VERSION=$(echo "$CHART_YAML" | yq '.version // "0.0.0"')
 
           echo "Current version: $CURRENT_VERSION"
           echo "Main version:    $MAIN_VERSION"
