@@ -15,6 +15,10 @@ on:
         description: 'Path in the registry (e.g. helm/charts, helm/libs)'
         type: string
         default: 'helm/charts'
+      push:
+        description: 'Whether to push the chart to the registry'
+        type: boolean
+        default: true
       helm_version:
         description: 'Helm CLI version'
         type: string
@@ -92,11 +96,13 @@ jobs:
         run: helm template test-release .
 
       - name: Package chart
+        if: inputs.push
         working-directory: ${{ inputs.chart_path }}
         run: |
           helm package . --version "${{ steps.version.outputs.chart_version }}"
 
       - name: Push chart
+        if: inputs.push
         working-directory: ${{ inputs.chart_path }}
         run: |
           helm push ./*.tgz "oci://${{ inputs.registry }}/${{ inputs.registry_path }}"
