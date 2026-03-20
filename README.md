@@ -11,6 +11,7 @@ Reusable GitHub Actions workflows and composite actions for the nix-fit-org orga
     helm-from-template/    # Composite action: clone helm template + patch + push OCI
   workflows/
     build-docker-image.yml # docker-* repositories
+    lint-dockerfile.yml    # docker template repositories (lint only)
     helm-validate.yml      # helm-* repositories (validate)
     helm-publish.yml       # helm-* repositories (publish)
     ci.yml                 # this repo: actionlint
@@ -19,6 +20,7 @@ Reusable GitHub Actions workflows and composite actions for the nix-fit-org orga
 ## Docs
 
 - [build-docker-image](docs/build-docker-image.md)
+- [lint-dockerfile](docs/lint-dockerfile.md)
 - [helm-validate + helm-publish](docs/helm.md)
 
 ## Organization secrets
