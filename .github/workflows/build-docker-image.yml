@@ -1,0 +1,63 @@
+name: Build Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      image_sub_path:
+        description: 'Path within registry (e.g. ci/build, base/redhat)'
+        type: string
+        required: true
+      platforms:
+        description: 'Target platforms (default: amd64+arm64 for base images)'
+        type: string
+        default: 'linux/amd64,linux/arm64'
+      version_file:
+        description: 'Path to file containing the image version'
+        type: string
+        default: 'version'
+      test_release:
+        description: 'Force release versioning on non-release branch'
+        type: boolean
+        default: false
+    secrets:
+      REGISTRY_USERNAME:
+        required: true
+      REGISTRY_PASSWORD:
+        required: true
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Read version and derive image name
+        id: meta
+        run: |
+          VERSION=$(tr -d '[:space:]' < "${{ inputs.version_file }}")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+          # docker-nodejs-build -> nodejs-build
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          IMAGE_NAME="${REPO_NAME#docker-}"
+          echo "image_name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          ignore: DL3033,DL3041
+
+      - name: Build and push
+        uses: nix-fit-org/nix-github-workflows/.github/actions/docker-build@main
+        with:
+          image_name: ${{ steps.meta.outputs.image_name }}
+          image_sub_path: ${{ inputs.image_sub_path }}
+          version: ${{ steps.meta.outputs.version }}
+          platforms: ${{ inputs.platforms }}
+          registry_username: ${{ secrets.REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.REGISTRY_PASSWORD }}
+          test_release: ${{ inputs.test_release }}

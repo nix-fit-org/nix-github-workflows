@@ -1,0 +1,108 @@
+name: Publish Helm Chart from Template
+description: >
+  Clone a Helm chart template repo, patch Chart.yaml and values.yaml with
+  image metadata, then package and push to OCI registry.
+
+inputs:
+  helm_template_repo:
+    description: 'Template repo name in nix-fit-org (e.g. helm-nodejs-template)'
+    required: true
+  helm_template_branch:
+    description: 'Branch of the template repo'
+    required: false
+    default: 'main'
+  app_name:
+    description: 'Application name (patched into Chart.yaml .name)'
+    required: true
+  app_version:
+    description: 'Application semver (patched into Chart.yaml .appVersion)'
+    required: true
+  chart_version:
+    description: 'Chart version = image tag (patched into Chart.yaml .version)'
+    required: true
+  image_sub_path:
+    description: 'Image path prefix in registry (e.g. apps/front, apps/back)'
+    required: true
+  image_tag:
+    description: 'Docker image tag'
+    required: true
+  image_digest:
+    description: 'Docker image sha256 digest'
+    required: true
+  chart_oci_path:
+    description: 'OCI path to push chart to (e.g. helm/apps/front)'
+    required: true
+  registry:
+    required: false
+    default: 'nix-docker.registry.twcstorage.ru'
+  registry_username:
+    required: true
+  registry_password:
+    required: true
+  gh_pat:
+    description: 'GitHub PAT to clone private template repo'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout helm template
+      uses: actions/checkout@v6
+      with:
+        repository: nix-fit-org/${{ inputs.helm_template_repo }}
+        ref: ${{ inputs.helm_template_branch }}
+        token: ${{ inputs.gh_pat }}
+        path: .helm-chart-template
+        fetch-depth: 1
+
+    - name: Setup yq
+      uses: mikefarah/yq@v4.52.4
+
+    - name: Setup Helm
+      uses: azure/setup-helm@v4
+      with:
+        version: 'v4.1.0'
+
+    - name: Patch Chart.yaml and values.yaml
+      shell: bash
+      working-directory: .helm-chart-template
+      env:
+        APP_NAME: ${{ inputs.app_name }}
+        APP_VERSION: ${{ inputs.app_version }}
+        CHART_VERSION: ${{ inputs.chart_version }}
+        IMAGE_REPOSITORY: ${{ inputs.image_sub_path }}/${{ inputs.app_name }}
+        IMAGE_TAG: ${{ inputs.image_tag }}
+        IMAGE_DIGEST: ${{ inputs.image_digest }}
+      run: |
+        yq -i '
+          .name       = strenv(APP_NAME)    |
+          .appVersion = strenv(APP_VERSION) |
+          .version    = strenv(CHART_VERSION)
+        ' Chart.yaml
+
+        yq -i '
+          .image.repository = strenv(IMAGE_REPOSITORY) |
+          .image.tag        = strenv(IMAGE_TAG)        |
+          .image.digest     = strenv(IMAGE_DIGEST)
+        ' values.yaml
+
+    - name: Login to Helm OCI registry
+      shell: bash
+      run: >
+        echo "${{ inputs.registry_password }}" |
+        helm registry login "${{ inputs.registry }}"
+        --username "${{ inputs.registry_username }}"
+        --password-stdin
+
+    - name: Package and push chart
+      shell: bash
+      working-directory: .helm-chart-template
+      env:
+        REGISTRY: ${{ inputs.registry }}
+        CHART_OCI_PATH: ${{ inputs.chart_oci_path }}
+      run: |
+        helm dependency update
+        helm package .
+        CHART_PKG=$(ls ./*.tgz)
+        helm show chart "$CHART_PKG"
+        helm push "$CHART_PKG" "oci://${REGISTRY}/${CHART_OCI_PATH}"
