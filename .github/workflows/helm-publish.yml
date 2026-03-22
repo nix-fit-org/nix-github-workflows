@@ -44,7 +44,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
 
       - name: Setup Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v4.3.1
         with:
           version: ${{ inputs.helm_version }}
 

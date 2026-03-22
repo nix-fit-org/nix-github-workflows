@@ -1,0 +1,140 @@
+name: Build Node.js App
+
+on:
+  workflow_call:
+    inputs:
+      platforms:
+        description: 'Target platforms'
+        type: string
+        default: 'linux/amd64'
+      nodejs_major_version:
+        description: 'Node.js major version (e.g. 22, 24)'
+        type: string
+        default: '22'
+      nodejs_version:
+        description: 'Node.js full version (e.g. 22.20.0)'
+        type: string
+        default: '22.20.0'
+      helm_template_branch:
+        description: 'Branch of helm-nodejs-template to use'
+        type: string
+        default: 'main'
+      test_release:
+        description: 'Force release versioning on non-release branch'
+        type: boolean
+        default: false
+      flux_helm_release_namespace:
+        description: 'Namespace of the HelmRelease in the dev cluster'
+        type: string
+        default: 'frontend'
+    secrets:
+      REGISTRY_USERNAME:
+        required: true
+      REGISTRY_PASSWORD:
+        required: true
+      GH_PAT:
+        required: true
+      FLUX_KUBECONFIG_DEV:
+        required: true
+
+jobs:
+  nodejs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Fetch shared resources
+        uses: actions/checkout@v6
+        with:
+          repository: nix-fit-org/nix-github-workflows
+          ref: main
+          token: ${{ secrets.GH_PAT }}
+          path: .nix-config
+          sparse-checkout: |
+            resources/GitVersion.yml
+            resources/nodejs.dockerignore
+            resources/nodejs.Dockerfile
+          sparse-checkout-cone-mode: false
+
+      - name: Setup GitVersion
+        uses: gittools/actions/gitversion/setup@v4
+        with:
+          versionSpec: '6.x'
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v4
+        with:
+          configFilePath: .nix-config/resources/GitVersion.yml
+
+      - name: Derive app name
+        id: meta
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+          APP_NAME="${REPO_NAME#front-app-}"
+          echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "App name: ${APP_NAME}"
+          echo "Version:  ${{ steps.gitversion.outputs.majorMinorPatch }}"
+
+      - name: Copy resources
+        run: |
+          cp .nix-config/resources/nodejs.dockerignore .dockerignore
+          cp .nix-config/resources/nodejs.Dockerfile Dockerfile
+
+      - name: Build and push Docker image
+        id: docker
+        uses: nix-fit-org/nix-github-workflows/.github/actions/docker-build@main
+        with:
+          image_name: ${{ steps.meta.outputs.app_name }}
+          image_sub_path: apps/front
+          version: ${{ steps.gitversion.outputs.majorMinorPatch }}
+          platforms: ${{ inputs.platforms }}
+          registry_username: ${{ secrets.REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.REGISTRY_PASSWORD }}
+          test_release: ${{ inputs.test_release }}
+          build_args: |
+            NODEJS_MAJOR_VERSION=${{ inputs.nodejs_major_version }}
+            NODEJS_VERSION=${{ inputs.nodejs_version }}
+
+      - name: Publish Helm chart
+        uses: nix-fit-org/nix-github-workflows/.github/actions/helm-from-template@main
+        with:
+          helm_template_repo: helm-nodejs-template
+          helm_template_branch: ${{ inputs.helm_template_branch }}
+          app_name: ${{ steps.meta.outputs.app_name }}
+          app_version: ${{ steps.gitversion.outputs.majorMinorPatch }}
+          chart_version: ${{ steps.docker.outputs.image_tag }}
+          image_sub_path: apps/front
+          image_tag: ${{ steps.docker.outputs.image_tag }}
+          image_digest: ${{ steps.docker.outputs.image_digest }}
+          chart_oci_path: helm/apps/front
+          registry_username: ${{ secrets.REGISTRY_USERNAME }}
+          registry_password: ${{ secrets.REGISTRY_PASSWORD }}
+          gh_pat: ${{ secrets.GH_PAT }}
+
+      - name: Deploy Dev via Flux
+        uses: nix-fit-org/nix-github-workflows/.github/actions/flux-reconcile-app@main
+        with:
+          app_name: ${{ steps.meta.outputs.app_name }}
+          helm_release_namespace: ${{ inputs.flux_helm_release_namespace }}
+          include_release_policy: ${{ github.ref == 'refs/heads/main' || inputs.test_release }}
+          kubeconfig: ${{ secrets.FLUX_KUBECONFIG_DEV }}
+
+      - name: Create release tag
+        if: github.ref == 'refs/heads/main'
+        env:
+          VERSION: ${{ steps.gitversion.outputs.majorMinorPatch }}
+        run: |
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists, skipping"
+          else
+            git tag "v${VERSION}"
+            git push origin "v${VERSION}"
+            echo "Created and pushed tag v${VERSION}"
+          fi

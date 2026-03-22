@@ -49,7 +49,7 @@ jobs:
         working-directory: ${{ inputs.chart_path }}
         run: |
           VERSION="${{ inputs.helm_docs_version }}"
-          curl -sL "https://github.com/norwoodj/helm-docs/releases/download/${VERSION}/helm-docs_${VERSION#v}_Linux_x86_64.tar.gz" | tar xz helm-docs
+          curl -fsSL "https://github.com/norwoodj/helm-docs/releases/download/${VERSION}/helm-docs_${VERSION#v}_Linux_x86_64.tar.gz" | tar xz helm-docs
 
           ./helm-docs --template-files=README.md.gotmpl
 
