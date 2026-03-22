@@ -15,3 +15,21 @@ jobs:
 
       - name: Run actionlint
         uses: raven-actions/actionlint@v2
+
+  lint-dockerfiles:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Lint Dockerfiles
+        run: |
+          curl -fsSL https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-Linux-x86_64 \
+            -o /usr/local/bin/hadolint && chmod +x /usr/local/bin/hadolint
+          mapfile -d '' dockerfiles < <(find resources/ -name "*.Dockerfile" -print0)
+          if [ ${#dockerfiles[@]} -eq 0 ]; then
+            echo "No Dockerfiles found in resources/"
+            exit 1
+          fi
+          echo "Linting ${#dockerfiles[@]} Dockerfile(s): ${dockerfiles[*]}"
+          hadolint --ignore DL3033 --ignore DL3041 "${dockerfiles[@]}"

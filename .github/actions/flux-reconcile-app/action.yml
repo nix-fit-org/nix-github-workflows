@@ -1,0 +1,53 @@
+name: Flux Reconcile App
+description: Trigger Flux to reconcile image policies and deploy to dev
+
+inputs:
+  app_name:
+    description: 'Application name (e.g. nix)'
+    required: true
+  helm_release_namespace:
+    description: 'Namespace of the HelmRelease (e.g. frontend, backend)'
+    required: true
+  include_release_policy:
+    description: 'Whether to reconcile the -chart-release image policy (true on main)'
+    required: false
+    default: 'false'
+  kubeconfig:
+    description: 'Kubeconfig content for the dev cluster'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install flux CLI
+      shell: bash
+      run: |
+        curl -fsSL https://fluxcd.io/install.sh | sudo FLUX_VERSION=2.8.3 bash
+
+    - name: Reconcile
+      shell: bash
+      env:
+        KUBECONFIG: /tmp/flux-kubeconfig
+      run: |
+        echo "${{ inputs.kubeconfig }}" > /tmp/flux-kubeconfig
+        chmod 600 /tmp/flux-kubeconfig
+
+        APP="${{ inputs.app_name }}"
+        NS=flux-system
+
+        flux reconcile image repository "${APP}-chart" --namespace "${NS}"
+
+        if [ "${{ inputs.include_release_policy }}" = "true" ]; then
+          flux reconcile image policy "${APP}-chart-release" --namespace "${NS}"
+        fi
+
+        flux reconcile image policy "${APP}-chart-latest" --namespace "${NS}"
+        flux reconcile image update apps-image-update-automation --namespace "${NS}"
+
+        sleep 15
+        flux reconcile kustomization dev-apps --with-source
+        sleep 5
+        flux reconcile helmrelease "${APP}" \
+          --namespace "${{ inputs.helm_release_namespace }}" --with-source
+
+        rm -f /tmp/flux-kubeconfig

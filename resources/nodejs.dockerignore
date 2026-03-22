@@ -1,0 +1,13 @@
+node_modules/
+build/
+dist/
+**/logs/
+**/.git/
+**/.vs/
+**/.idea/
+**/.vscode/
+**/.github/
+**/k8s/
+*.md
+.env
+.env.*
