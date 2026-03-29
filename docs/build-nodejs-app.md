@@ -41,12 +41,28 @@ feat: Add new auth method
 BREAKING CHANGE: old tokens no longer valid
 ```
 
-| Branch | Image tag | Helm chart |
-|--------|-----------|------------|
-| Feature branch | `0.2.1-snapshot` | snapshot (overwritten on each push) |
-| `main` | `0.2.1` | versioned release |
+| Branch | Docker tag | Helm tags |
+|--------|-----------|-----------|
+| Feature branch | `{version}-snapshot` | `{version}-snapshot` + `:snapshot` |
+| `main` | `{version}` | `{version}` |
+
+All images and charts go to the same registry path. On feature branches, after pushing the versioned chart tag, it is copied to the mutable `:snapshot` tag via `skopeo copy`. The dev cluster always pulls from `:snapshot` — no ImagePolicy involved.
 
 A git tag `v<version>` is created in the app repo on each `main` push.
+
+## Flux
+
+The workflow triggers Flux reconciliation after each push:
+
+| Branch | Reconcile |
+|--------|-----------|
+| Feature branch | `flux reconcile helmrelease {app} --with-source` — forces Flux to re-fetch the `:snapshot` OCI tag by digest |
+| `main` | Full chain: ImageRepository → ImagePolicy → ImageUpdateAutomation (commits new tag to gitops) → kustomization → helmrelease |
+
+Required Flux resources in the gitops repo (per app):
+- `ImageRepository {app}-chart` — watches `helm/apps/front/{app}`
+- `ImagePolicy {app}-chart-release` — references `{app}-chart`, semver range without pre-release (e.g. `>=0.0.1000 <1.0.0000`)
+- OCIRepository in dev overlay patched to `ref.tag: snapshot` (no ImagePolicy marker)
 
 ## Dockerfile
 

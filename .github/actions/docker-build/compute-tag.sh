@@ -130,10 +130,6 @@ if [[ "$IS_RELEASE" == "true" ]]; then
     IMAGE_TAG="$BASE_VERSION"
   fi
 
-  # No cache on release builds — avoids polluting the cache layer
-  # with release artifacts and keeps release images clean.
-  CACHE_FROM=""
-  CACHE_TO=""
 else
   IMAGE_TAG="${BASE_VERSION}-snapshot"
   # Cache is stored as a separate tag alongside the image: <tag>-cache
@@ -152,6 +148,6 @@ echo "Image tag: $IMAGE_TAG"
 {
   echo "image_tag=${IMAGE_TAG}"
   echo "is_release=${IS_RELEASE}"
-  echo "cache_from=${CACHE_FROM}"
-  echo "cache_to=${CACHE_TO}"
+  echo "cache_from=${CACHE_FROM:-}"
+  echo "cache_to=${CACHE_TO:-}"
 } >> "$GITHUB_OUTPUT"
