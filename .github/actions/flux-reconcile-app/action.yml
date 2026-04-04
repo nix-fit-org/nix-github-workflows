@@ -8,8 +8,8 @@ inputs:
   helm_release_namespace:
     description: 'Namespace of the HelmRelease (e.g. frontend, backend)'
     required: true
-  include_release_policy:
-    description: 'Whether to reconcile the -chart-release image policy (true on main)'
+  snapshot:
+    description: 'Snapshot build from a feature branch (true) or release build from main (false)'
     required: false
     default: 'false'
   kubeconfig:
@@ -35,19 +35,18 @@ runs:
         APP="${{ inputs.app_name }}"
         NS=flux-system
 
-        flux reconcile image repository "${APP}-chart" --namespace "${NS}"
-
-        if [ "${{ inputs.include_release_policy }}" = "true" ]; then
+        if [ "${{ inputs.snapshot }}" = "true" ]; then
+          flux reconcile helmrelease "${APP}" \
+            --namespace "${{ inputs.helm_release_namespace }}" --with-source
+        else
+          flux reconcile image repository "${APP}-chart" --namespace "${NS}"
           flux reconcile image policy "${APP}-chart-release" --namespace "${NS}"
+          flux reconcile image update apps-image-update-automation --namespace "${NS}"
+          sleep 15
+          flux reconcile kustomization dev-apps --with-source
+          sleep 5
+          flux reconcile helmrelease "${APP}" \
+            --namespace "${{ inputs.helm_release_namespace }}" --with-source
         fi
-
-        flux reconcile image policy "${APP}-chart-latest" --namespace "${NS}"
-        flux reconcile image update apps-image-update-automation --namespace "${NS}"
-
-        sleep 15
-        flux reconcile kustomization dev-apps --with-source
-        sleep 5
-        flux reconcile helmrelease "${APP}" \
-          --namespace "${{ inputs.helm_release_namespace }}" --with-source
 
         rm -f /tmp/flux-kubeconfig

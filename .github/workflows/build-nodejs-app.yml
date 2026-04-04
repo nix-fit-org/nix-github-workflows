@@ -73,12 +73,18 @@ jobs:
         with:
           configFilePath: .nix-config/resources/GitVersion.yml
 
-      - name: Derive app name
+      - name: Resolve app name
         id: meta
         run: |
           REPO_NAME="${GITHUB_REPOSITORY##*/}"
           APP_NAME="${REPO_NAME#front-app-}"
-          echo "app_name=${APP_NAME}" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "app_name=${APP_NAME}"
+            echo "image_sub_path=apps/front"
+            echo "chart_oci_path=helm/apps/front"
+          } >> "$GITHUB_OUTPUT"
+
           echo "App name: ${APP_NAME}"
           echo "Version:  ${{ steps.gitversion.outputs.majorMinorPatch }}"
 
@@ -92,7 +98,7 @@ jobs:
         uses: nix-fit-org/nix-github-workflows/.github/actions/docker-build@main
         with:
           image_name: ${{ steps.meta.outputs.app_name }}
-          image_sub_path: apps/front
+          image_sub_path: ${{ steps.meta.outputs.image_sub_path }}
           version: ${{ steps.gitversion.outputs.majorMinorPatch }}
           platforms: ${{ inputs.platforms }}
           registry_username: ${{ secrets.REGISTRY_USERNAME }}
@@ -110,20 +116,34 @@ jobs:
           app_name: ${{ steps.meta.outputs.app_name }}
           app_version: ${{ steps.gitversion.outputs.majorMinorPatch }}
           chart_version: ${{ steps.docker.outputs.image_tag }}
-          image_sub_path: apps/front
+          image_sub_path: ${{ steps.meta.outputs.image_sub_path }}
           image_tag: ${{ steps.docker.outputs.image_tag }}
           image_digest: ${{ steps.docker.outputs.image_digest }}
-          chart_oci_path: helm/apps/front
+          chart_oci_path: ${{ steps.meta.outputs.chart_oci_path }}
           registry_username: ${{ secrets.REGISTRY_USERNAME }}
           registry_password: ${{ secrets.REGISTRY_PASSWORD }}
           gh_pat: ${{ secrets.GH_PAT }}
+
+      - name: Copy Helm chart to snapshot
+        if: github.ref_name != 'main' && !inputs.test_release
+        env:
+          REGISTRY: nix-docker.registry.twcstorage.ru
+          APP_NAME: ${{ steps.meta.outputs.app_name }}
+          CHART_OCI_PATH: ${{ steps.meta.outputs.chart_oci_path }}
+          CHART_TAG: ${{ steps.docker.outputs.image_tag }}
+          CREDS: ${{ secrets.REGISTRY_USERNAME }}:${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          skopeo copy \
+            --src-creds "$CREDS" --dest-creds "$CREDS" \
+            "docker://${REGISTRY}/${CHART_OCI_PATH}/${APP_NAME}:${CHART_TAG}" \
+            "docker://${REGISTRY}/${CHART_OCI_PATH}/${APP_NAME}:snapshot"
 
       - name: Deploy Dev via Flux
         uses: nix-fit-org/nix-github-workflows/.github/actions/flux-reconcile-app@main
         with:
           app_name: ${{ steps.meta.outputs.app_name }}
           helm_release_namespace: ${{ inputs.flux_helm_release_namespace }}
-          include_release_policy: ${{ github.ref == 'refs/heads/main' || inputs.test_release }}
+          snapshot: ${{ github.ref_name != 'main' && !inputs.test_release }}
           kubeconfig: ${{ secrets.FLUX_KUBECONFIG_DEV }}
 
       - name: Create release tag
