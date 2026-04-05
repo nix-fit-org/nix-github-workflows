@@ -108,6 +108,7 @@ jobs:
           registry_username: ${{ secrets.REGISTRY_USERNAME }}
           registry_password: ${{ secrets.REGISTRY_PASSWORD }}
           test_release: ${{ inputs.test_release }}
+          enable_snapshot_cache: 'false'
           build_args: |
             DOTNET_MAJOR_VERSION=${{ inputs.dotnet_major_version }}
             DOTNET_VERSION=${{ inputs.dotnet_version }}

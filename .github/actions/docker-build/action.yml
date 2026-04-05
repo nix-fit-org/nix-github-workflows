@@ -38,6 +38,10 @@ inputs:
     description: 'Force release versioning on non-release branch'
     required: false
     default: 'false'
+  enable_snapshot_cache:
+    description: 'Enable registry build cache for snapshot builds'
+    required: false
+    default: 'true'
 
 outputs:
   image_tag:
@@ -88,5 +92,5 @@ runs:
         tags: ${{ inputs.registry }}/${{ inputs.image_sub_path }}/${{ inputs.image_name }}:${{ steps.versioning.outputs.image_tag }}
         build-args: ${{ inputs.build_args }}
         secrets: ${{ inputs.build_secrets }}
-        cache-from: ${{ steps.versioning.outputs.cache_from }}
-        cache-to: ${{ steps.versioning.outputs.cache_to }}
+        cache-from: ${{ inputs.enable_snapshot_cache == 'true' && steps.versioning.outputs.cache_from || '' }}
+        cache-to: ${{ inputs.enable_snapshot_cache == 'true' && steps.versioning.outputs.cache_to || '' }}
