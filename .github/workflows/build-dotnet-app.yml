@@ -57,7 +57,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: nix-fit-org/nix-github-workflows
-          ref: main
+          ref: feat/build-back-app
           token: ${{ secrets.GH_PAT }}
           path: .nix-config
           sparse-checkout: |
