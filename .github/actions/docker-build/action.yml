@@ -80,18 +80,6 @@ runs:
         username: ${{ inputs.registry_username }}
         password: ${{ inputs.registry_password }}
 
-    - name: Resolve cache settings
-      id: cache
-      shell: bash
-      run: |
-        if [[ "${{ inputs.enable_snapshot_cache }}" == "true" ]]; then
-          echo "cache_from=${{ steps.versioning.outputs.cache_from }}" >> "$GITHUB_OUTPUT"
-          echo "cache_to=${{ steps.versioning.outputs.cache_to }}" >> "$GITHUB_OUTPUT"
-        else
-          echo "cache_from=" >> "$GITHUB_OUTPUT"
-          echo "cache_to=" >> "$GITHUB_OUTPUT"
-        fi
-
     - name: Build and push
       id: build
       uses: docker/build-push-action@v7
@@ -104,5 +92,5 @@ runs:
         tags: ${{ inputs.registry }}/${{ inputs.image_sub_path }}/${{ inputs.image_name }}:${{ steps.versioning.outputs.image_tag }}
         build-args: ${{ inputs.build_args }}
         secrets: ${{ inputs.build_secrets }}
-        cache-from: ${{ steps.cache.outputs.cache_from }}
-        cache-to: ${{ steps.cache.outputs.cache_to }}
+        cache-from: ${{ inputs.enable_snapshot_cache == 'true' && steps.versioning.outputs.cache_from || '' }}
+        cache-to: ${{ inputs.enable_snapshot_cache == 'true' && steps.versioning.outputs.cache_to || '' }}

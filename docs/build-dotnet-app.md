@@ -36,8 +36,6 @@ Multi-stage build on UBI10-minimal:
 
 The Dockerfile and `.dockerignore` are fetched from `nix-github-workflows/resources/` via sparse checkout — no need to commit them to the app repo. The `CSPROJ_PATH` build arg tells the builder which project to publish.
 
-Registry build cache is disabled for .NET — self-contained publish generates heavy layers that cause timeouts on cache export. Builds run without cache on every push.
-
 ## Flux
 
 The workflow triggers Flux reconciliation after each push:
