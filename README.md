@@ -13,6 +13,7 @@ Reusable GitHub Actions workflows and composite actions for the nix-fit-org orga
   workflows/
     build-docker-image.yml # docker-* repositories
     build-nodejs-app.yml   # front-app-* repositories (Node.js)
+    build-dotnet-app.yml   # back-app-* repositories (.NET)
     lint-dockerfile.yml    # docker template repositories (lint only)
     helm-validate.yml      # helm-* repositories (validate)
     helm-publish.yml       # helm-* repositories (publish)
@@ -21,12 +22,15 @@ resources/
   GitVersion.yml           # Shared GitVersion config (conventional commits)
   nodejs.Dockerfile        # Node.js multi-stage Dockerfile
   nodejs.dockerignore      # .dockerignore for Node.js apps
+  dotnet.Dockerfile        # .NET multi-stage Dockerfile
+  dotnet.dockerignore      # .dockerignore for .NET apps
 ```
 
 ## Docs
 
 - [build-docker-image](docs/build-docker-image.md)
 - [build-nodejs-app](docs/build-nodejs-app.md)
+- [build-dotnet-app](docs/build-dotnet-app.md)
 - [lint-dockerfile](docs/lint-dockerfile.md)
 - [helm-validate + helm-publish](docs/helm.md)
 
