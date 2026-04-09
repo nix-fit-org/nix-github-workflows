@@ -1,11 +1,11 @@
 # GitVersion config for app repositories (nodejs, dotnet).
 #
 # Commit message format:
-#   feat/feature: or feat(scope):   -> minor bump
-#   fix: or fix(scope):             -> patch bump
-#   feat!: or fix!:                 -> major bump (breaking change)
-#   BREAKING CHANGE: in commit footer (after blank line) -> major bump
-#   chore/docs/ci/refactor/...      -> no bump
+#   feat/feature: or feat(scope):              -> minor bump
+#   fix: or fix(scope): or perf:               -> patch bump
+#   feat!: fix!: refactor!: feat(scope)!: etc. -> major bump (breaking change)
+#   BREAKING CHANGE: in commit body            -> major bump
+#   chore/docs/ci/...                          -> no bump
 workflow: TrunkBased/preview1
 next-version: 0.1.0
 commit-message-incrementing: Enabled
