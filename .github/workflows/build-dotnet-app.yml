@@ -71,6 +71,8 @@ jobs:
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '9.x'
 
       - name: Setup GitVersion
         uses: gittools/actions/gitversion/setup@v4
