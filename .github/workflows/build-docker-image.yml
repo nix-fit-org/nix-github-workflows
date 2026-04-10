@@ -27,7 +27,7 @@ on:
 
 jobs:
   docker:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, spb]
     steps:
       - name: Checkout
         uses: actions/checkout@v6

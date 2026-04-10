@@ -39,7 +39,7 @@ on:
 
 jobs:
   nodejs:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, spb]
     permissions:
       contents: write
     steps:
