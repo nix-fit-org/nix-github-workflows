@@ -70,11 +70,8 @@ runs:
     - name: Network debug
       shell: bash
       run: |
-        fmt='dns:%{time_namelookup}s connect:%{time_connect}s tls:%{time_appconnect}s total:%{time_total}s speed:%{speed_download}B/s\n'
-        echo "=== zot-infra.nix-fit.ru ==="
-        for i in 1 2 3; do curl -sSo /dev/null -w "$fmt" https://zot-infra.nix-fit.ru/v2/ || true; done
-        echo "=== nix-docker.registry.twcstorage.ru ==="
-        for i in 1 2 3; do curl -sSo /dev/null -w "$fmt" https://nix-docker.registry.twcstorage.ru/v2/ || true; done
+        echo "=== upload speed to zot-infra.nix-fit.ru ==="
+        dd if=/dev/urandom bs=1M count=50 2>/dev/null | curl -sSo /dev/null -w "uploaded:%{size_upload}B time:%{time_total}s speed:%{speed_upload}B/s\n" -X POST -H "Content-Type: application/octet-stream" --data-binary @- https://zot-infra.nix-fit.ru/v2/ || true
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v4
