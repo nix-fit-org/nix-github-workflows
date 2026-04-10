@@ -69,9 +69,26 @@ runs:
 
     - name: Network debug
       shell: bash
+      env:
+        REGISTRY: ${{ inputs.registry }}
+        REGISTRY_USERNAME: ${{ inputs.registry_username }}
+        REGISTRY_PASSWORD: ${{ inputs.registry_password }}
       run: |
-        echo "=== upload speed to zot-infra.nix-fit.ru ==="
-        dd if=/dev/urandom bs=1M count=50 2>/dev/null | curl -sSo /dev/null -w "uploaded:%{size_upload}B time:%{time_total}s speed:%{speed_upload}B/s\n" -X POST -H "Content-Type: application/octet-stream" --data-binary @- https://zot-infra.nix-fit.ru/v2/ || true
+        echo "=== upload speed 100MB via registry blob API ==="
+        UPLOAD_URL=$(curl -sf -u "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" \
+          -X POST "https://${REGISTRY}/v2/debug-speedtest/blobs/uploads/" \
+          -D - -o /dev/null 2>/dev/null \
+          | grep -i "^location:" | tr -d '\r' | awk '{print $2}')
+        echo "Upload URL: $UPLOAD_URL"
+        if [[ -n "$UPLOAD_URL" ]]; then
+          curl -sSo /dev/null -w "uploaded:%{size_upload}B time:%{time_total}s speed:%{speed_upload}B/s\n" \
+            -u "${REGISTRY_USERNAME}:${REGISTRY_PASSWORD}" \
+            -X PATCH -H "Content-Type: application/octet-stream" \
+            --data-binary @<(dd if=/dev/urandom bs=1M count=100 2>/dev/null) \
+            "https://${REGISTRY}${UPLOAD_URL}" || true
+        else
+          echo "Failed to initiate upload"
+        fi
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v4
