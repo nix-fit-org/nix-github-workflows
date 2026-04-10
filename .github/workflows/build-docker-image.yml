@@ -27,7 +27,7 @@ on:
 
 jobs:
   docker:
-    runs-on: [self-hosted, spb]
+    runs-on: [self-hosted, msk]
     steps:
       - name: Checkout
         uses: actions/checkout@v6

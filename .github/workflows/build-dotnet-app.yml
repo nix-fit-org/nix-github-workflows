@@ -43,7 +43,7 @@ on:
 
 jobs:
   dotnet:
-    runs-on: [self-hosted, spb]
+    runs-on: [self-hosted, msk]
     permissions:
       contents: write
     steps:
