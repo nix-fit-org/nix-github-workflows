@@ -67,6 +67,14 @@ runs:
         REGISTRY_PASSWORD: ${{ inputs.registry_password }}
       run: bash "${{ github.action_path }}/compute-tag.sh"
 
+    - name: Network debug
+      shell: bash
+      run: |
+        echo "=== traceroute zot-infra.nix-fit.ru ==="
+        traceroute -w 2 -q 1 zot-infra.nix-fit.ru || true
+        echo "=== traceroute nix-docker.registry.twcstorage.ru ==="
+        traceroute -w 2 -q 1 nix-docker.registry.twcstorage.ru || true
+
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v4
 

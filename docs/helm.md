@@ -40,7 +40,7 @@ Builds and pushes a Helm chart to the OCI registry with automatic versioning.
 
 | Input | Default | Description |
 |-------|---------|-------------|
-| `registry` | `nix-docker.registry.twcstorage.ru` | OCI registry URL |
+| `registry` | `zot-infra.nix-fit.ru` | OCI registry URL |
 | `chart_path` | `.` | Path to chart directory |
 | `registry_path` | `helm/charts` | Path in the registry (e.g. `helm/libs`, `helm/templates`) |
 | `push` | `true` | Whether to push the chart to the registry |
