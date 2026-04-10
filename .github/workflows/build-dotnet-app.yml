@@ -46,6 +46,9 @@ jobs:
     runs-on: [self-hosted, msk]
     permissions:
       contents: write
+    env:
+      DOTNET_INSTALL_DIR: /home/github_runner/.dotnet
+      DOTNET_ROOT: /home/github_runner/.dotnet
     steps:
       - name: Checkout
         uses: actions/checkout@v6
