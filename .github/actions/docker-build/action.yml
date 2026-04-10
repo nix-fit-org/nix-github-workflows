@@ -70,10 +70,11 @@ runs:
     - name: Network debug
       shell: bash
       run: |
-        echo "=== traceroute zot-infra.nix-fit.ru ==="
-        traceroute -w 2 -q 1 zot-infra.nix-fit.ru || true
-        echo "=== traceroute nix-docker.registry.twcstorage.ru ==="
-        traceroute -w 2 -q 1 nix-docker.registry.twcstorage.ru || true
+        echo "=== mtr zot-infra.nix-fit.ru ==="
+        sudo apt-get install -y -q mtr-tiny 2>/dev/null
+        sudo mtr --report --report-cycles 5 --no-dns zot-infra.nix-fit.ru || true
+        echo "=== mtr nix-docker.registry.twcstorage.ru ==="
+        sudo mtr --report --report-cycles 5 --no-dns nix-docker.registry.twcstorage.ru || true
 
     - name: Set up QEMU
       uses: docker/setup-qemu-action@v4
