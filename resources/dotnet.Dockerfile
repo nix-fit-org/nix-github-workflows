@@ -1,4 +1,4 @@
-ARG BASE=zot-infra.nix-fit.ru/base/redhat/ubi10-minimal:10.1002-1766033715
+ARG BASE=nix-docker.registry.twcstorage.ru/base/redhat/ubi10-minimal:10.1002-1766033715
 ARG DOTNET_MAJOR_VERSION=9
 ARG DOTNET_VERSION=9.0
 

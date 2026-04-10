@@ -127,7 +127,7 @@ jobs:
       - name: Copy Helm chart to snapshot
         if: github.ref_name != 'main' && !inputs.test_release
         env:
-          REGISTRY: zot-infra.nix-fit.ru
+          REGISTRY: nix-docker.registry.twcstorage.ru
           APP_NAME: ${{ steps.meta.outputs.app_name }}
           CHART_OCI_PATH: ${{ steps.meta.outputs.chart_oci_path }}
           CHART_TAG: ${{ steps.docker.outputs.image_tag }}

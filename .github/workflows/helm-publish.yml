@@ -6,7 +6,7 @@ on:
       registry:
         description: 'OCI registry URL'
         type: string
-        default: 'zot-infra.nix-fit.ru'
+        default: 'nix-docker.registry.twcstorage.ru'
       chart_path:
         description: 'Path to the chart directory'
         type: string

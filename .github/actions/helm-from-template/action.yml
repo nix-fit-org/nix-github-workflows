@@ -34,7 +34,7 @@ inputs:
     required: true
   registry:
     required: false
-    default: 'zot-infra.nix-fit.ru'
+    default: 'nix-docker.registry.twcstorage.ru'
   registry_username:
     required: true
   registry_password:
