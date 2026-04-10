@@ -72,6 +72,11 @@ jobs:
             resources/dotnet.Dockerfile
           sparse-checkout-cone-mode: false
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ inputs.dotnet_version }}
+
       - name: Setup GitVersion
         uses: gittools/actions/gitversion/setup@v4
         with:
