@@ -18,7 +18,7 @@ inputs:
     default: 'linux/amd64'
   registry:
     required: false
-    default: 'nix-docker.registry.twcstorage.ru'
+    default: 'zot-infra.nix-fit.ru'
   registry_username:
     required: true
   registry_password:
