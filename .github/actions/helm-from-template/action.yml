@@ -55,9 +55,6 @@ runs:
         path: .helm-chart-template
         fetch-depth: 1
 
-    - name: Setup yq
-      uses: mikefarah/yq@v4.52.4
-
     - name: Setup Helm
       uses: azure/setup-helm@v4.3.1
       with:
